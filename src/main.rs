@@ -24,6 +24,38 @@ struct LoginRequest {
     password: String,
 }
 
+
+// Nested Struct
+#[derive(Debug, Validate)]
+struct AddressRequest {
+
+    #[validate(length(min = 5, max = 100))]
+    street: String,
+
+    #[validate(length(min = 5, max = 100))]
+    city: String,
+
+    #[validate(length(min = 5, max = 100))]
+    country: String,
+}
+
+
+#[derive(Debug, Validate)]
+struct RegisterUserRequest {
+
+    #[validate(length(min = 5, max = 20))]
+    username: String,
+
+    #[validate(length(min = 5, max = 20))]
+    password: String,
+
+    #[validate(length(min = 5, max = 100))]
+    name: String,
+
+    #[validate(nested)]
+    address: AddressRequest,
+}
+
 // contoh untuk validasi berhasil
 #[test]
 fn test_validate_success() {
@@ -47,4 +79,42 @@ fn test_validate_failed() {
 
     let error = login.validate().err().unwrap();
     println!("{:?}", error.errors());
+}
+
+
+// Contoh untuk validasi berhasil menggunakan Nested Struct
+#[test]
+fn test_nested_struct_success() {
+    let request = RegisterUserRequest {
+        username: "qwerty".to_string(),
+        password: "12345".to_string(),
+        name: "Suharjin".to_string(),
+        address: AddressRequest {
+            street: "St. Albert Einstain No. 18".to_string(),
+            city: "Sidney".to_string(),
+            country: "Australia".to_string()
+        }
+    };
+
+    assert!(request.validate().is_ok())
+}
+
+// Contoh untuk validasi gagal menggunakan Nested Struct
+#[test]
+fn test_nested_struct_failed() {
+    let request = RegisterUserRequest {
+        username: "qwerty".to_string(), 
+        password: "12345".to_string(),
+        name: "Suharjin".to_string(),
+        address: AddressRequest {
+            street: "".to_string(), // street sengaja di kosongkan
+            city: "Sidney".to_string(),
+            country: "Australia".to_string()
+        }
+    };
+
+    assert!(request.validate().is_err());
+
+    let errors = request.validate().err().unwrap();
+    println!("{:?}", errors.errors())
 }
