@@ -7,9 +7,20 @@ fn main() {
 
 #[derive(Debug, Validate)]
 struct LoginRequest {
-    #[validate(length(min = 3, max = 15))]
+    #[validate(length(
+        min = 3, 
+        max = 15,
+        // menambahkan attribute "message" atau pesan error
+        message = "username must be between 3 and 15 character"
+    ))]
     username: String,
-    #[validate(length(min = 3, max = 20))]
+
+    #[validate(length(
+        min = 3, 
+        max = 20,
+        // menambahkan attribute "message" atau pesan error
+        message = "password must be between 3 and 15 character"
+    ))]
     password: String,
 }
 
