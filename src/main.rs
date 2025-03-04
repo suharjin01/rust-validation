@@ -86,21 +86,23 @@ struct AddressRequest {
 #[derive(Debug, Validate)]
 #[validate(schema(
     function = "crate::hjn::validator::password_equals_confirm_password",
-    skip_on_field_errors = false
+    skip_on_field_errors = false,
+code = "password",
+message = "password != confirm_password"
 ))]
 pub struct RegisterUserRequest {
 
-    #[validate(length(min = 5, max = 20))]
+    #[validate(length(min = 5, max = 20, code = "username"))]
     username: String,
 
-    #[validate(length(min = 5, max = 20))]
+    #[validate(length(min = 5, max = 20, code = "password"))]
     password: String,
 
     // materi struct level validation "menambahkan atribut confirm_password"
-    #[validate(length(min = 5, max = 20))]
+    #[validate(length(min = 5, max = 20, code = "confirm_password"))]
     confirm_password: String,
 
-    #[validate(length(min = 5, max = 100))]
+    #[validate(length(min = 5, max = 100, code = "name"))]
     name: String,
 
     #[validate(nested)]
@@ -181,10 +183,10 @@ fn test_nested_struct_success() {
 #[test]
 fn test_nested_struct_failed() {
     let request = RegisterUserRequest {
-        username: "qwerty".to_string(), 
+        username: "".to_string(), 
         password: "12345".to_string(),
         confirm_password: "salah".to_string(),
-        name: "Suharjin".to_string(),
+        name: "".to_string(),
         address: AddressRequest {
             street: "".to_string(), // street sengaja di kosongkan
             city: "Sidney".to_string(),
