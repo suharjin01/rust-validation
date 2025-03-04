@@ -1,4 +1,5 @@
-use validator::Validate;
+use serde::Serialize;
+use validator::{Validate, ValidateArgs};
 
 fn main() {
     println!("Hello, world!");
@@ -56,6 +57,32 @@ struct RegisterUserRequest {
     address: AddressRequest,
 }
 
+
+// Collection
+#[derive(Debug, Validate)]
+struct Product {
+
+    #[validate(length(min = 3, max = 100))]
+    id: String,
+
+    #[validate(length(min = 3, max = 100))]
+    name: String,
+
+    #[validate(nested, length(min = 1))]
+    variants: Vec<ProductVariant>,
+}
+
+#[derive(Debug, Validate, Serialize)]
+struct ProductVariant {
+
+    #[validate(length(min = 3, max = 100))]
+    name: String,
+
+    #[validate(range(min = 1, max = 1000000000))]
+    price: i32,
+}
+
+
 // contoh untuk validasi berhasil
 #[test]
 fn test_validate_success() {
@@ -111,6 +138,53 @@ fn test_nested_struct_failed() {
             city: "Sidney".to_string(),
             country: "Australia".to_string()
         }
+    };
+
+    assert!(request.validate().is_err());
+
+    let errors = request.validate().err().unwrap();
+    println!("{:?}", errors.errors())
+}
+
+
+// Collection
+#[test]
+fn test_validate_vector_succes() {
+    let request = Product {
+        id: "12345".to_string(),
+        name: "Product-1".to_string(),
+        variants: vec![
+            ProductVariant {
+                name: "Variant-1".to_string(),
+                price: 2000000
+            },
+
+            ProductVariant {
+                name: "Variant-2".to_string(),
+                price: 5000000
+            },
+        ]
+    };
+
+    assert!(request.validate().is_ok())
+}
+
+#[test]
+fn test_validate_vector_failed() {
+    let request = Product {
+        id: "12345".to_string(),
+        name: "Product-1".to_string(),
+        variants: vec![
+            ProductVariant {
+                name: "".to_string(),
+                price: 0
+            },
+
+            ProductVariant {
+                name: "Variant-2".to_string(),
+                price: 5000000
+            },
+        ]
     };
 
     assert!(request.validate().is_err());
