@@ -1,5 +1,36 @@
 use serde::Serialize;
-use validator::{Validate, ValidateArgs};
+use validator::{Validate};
+
+
+// module untuk custom validation
+pub mod hjn {
+    pub mod validator {
+        use std::borrow::Cow;
+
+        use validator::ValidationError;
+
+
+        pub fn not_blank(value: &str) -> Result<(), ValidationError> {
+            if value.trim().is_empty() {
+                return Err(ValidationError::new("not_blank")
+                    .with_message(Cow::from("value cannot be blank")));
+            }
+
+            Ok(())
+        }
+    }
+}
+
+#[derive(Debug, Validate)]
+struct CreateCategoryRequest {
+
+    #[validate(custom(function = "crate::hjn::validator::not_blank"))]
+    id: String,
+
+    #[validate(custom(function = "crate::hjn::validator::not_blank"))]
+    name: String,
+}
+
 
 fn main() {
     println!("Hello, world!");
@@ -190,5 +221,18 @@ fn test_validate_vector_failed() {
     assert!(request.validate().is_err());
 
     let errors = request.validate().err().unwrap();
+    println!("{:?}", errors.errors())
+}
+
+
+// Costum Validation
+#[test]
+fn test_custom_validation() {
+    let catrgory = CreateCategoryRequest {
+        id: "".to_string(),
+        name: "  ".to_string()
+    };
+
+    let errors = catrgory.validate().err().unwrap();
     println!("{:?}", errors.errors())
 }
