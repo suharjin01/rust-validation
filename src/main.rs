@@ -9,11 +9,22 @@ pub mod hjn {
 
         use validator::ValidationError;
 
+        use crate::RegisterUserRequest;
+
 
         pub fn not_blank(value: &str) -> Result<(), ValidationError> {
             if value.trim().is_empty() {
                 return Err(ValidationError::new("not_blank")
                     .with_message(Cow::from("value cannot be blank")));
+            }
+
+            Ok(())
+        }
+
+        pub fn password_equals_confirm_password(request: &RegisterUserRequest) -> Result<(), ValidationError> {
+            if request.password != request.confirm_password {
+                return  Err(ValidationError::new("password_equals_confirm_password")
+                    .with_message(Cow::from("password and confirm password must be the same")))
             }
 
             Ok(())
@@ -73,13 +84,21 @@ struct AddressRequest {
 
 
 #[derive(Debug, Validate)]
-struct RegisterUserRequest {
+#[validate(schema(
+    function = "crate::hjn::validator::password_equals_confirm_password",
+    skip_on_field_errors = false
+))]
+pub struct RegisterUserRequest {
 
     #[validate(length(min = 5, max = 20))]
     username: String,
 
     #[validate(length(min = 5, max = 20))]
     password: String,
+
+    // materi struct level validation "menambahkan atribut confirm_password"
+    #[validate(length(min = 5, max = 20))]
+    confirm_password: String,
 
     #[validate(length(min = 5, max = 100))]
     name: String,
@@ -146,6 +165,7 @@ fn test_nested_struct_success() {
     let request = RegisterUserRequest {
         username: "qwerty".to_string(),
         password: "12345".to_string(),
+        confirm_password: "12345".to_string(),
         name: "Suharjin".to_string(),
         address: AddressRequest {
             street: "St. Albert Einstain No. 18".to_string(),
@@ -163,6 +183,7 @@ fn test_nested_struct_failed() {
     let request = RegisterUserRequest {
         username: "qwerty".to_string(), 
         password: "12345".to_string(),
+        confirm_password: "salah".to_string(),
         name: "Suharjin".to_string(),
         address: AddressRequest {
             street: "".to_string(), // street sengaja di kosongkan
