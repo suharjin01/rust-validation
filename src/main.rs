@@ -1,15 +1,15 @@
 use serde::Serialize;
-use validator::{Validate};
+use validator::{Validate, ValidateArgs};
 
 
 // module untuk custom validation
 pub mod hjn {
     pub mod validator {
-        use std::borrow::Cow;
+        use std::{borrow::Cow};
 
         use validator::ValidationError;
 
-        use crate::RegisterUserRequest;
+        use crate::{DatabaseContex, RegisterUserRequest};
 
 
         pub fn not_blank(value: &str) -> Result<(), ValidationError> {
@@ -29,8 +29,31 @@ pub mod hjn {
 
             Ok(())
         }
+
+        pub fn can_register(
+            request: &RegisterUserRequest, 
+            context: &DatabaseContex,
+        ) -> Result<(), ValidationError> {
+            if context.total >= context.max_data {
+                return Err(
+                    ValidationError::new("can_register").with_message(Cow::from(format!(
+                        "cannot register user {}, database is full", 
+                        request.username
+                    )))
+                );
+            }
+
+            Ok(())
+        }
     }
 }
+
+
+pub struct DatabaseContex {
+    total: i32,
+    max_data: i32,
+}
+
 
 #[derive(Debug, Validate)]
 struct CreateCategoryRequest {
@@ -84,12 +107,20 @@ struct AddressRequest {
 
 
 #[derive(Debug, Validate)]
-#[validate(schema(
+#[validate(context = DatabaseContex,
+    schema(
     function = "crate::hjn::validator::password_equals_confirm_password",
     skip_on_field_errors = false,
-code = "password",
-message = "password != confirm_password"
-))]
+    code = "password",
+    message = "password != confirm_password"
+    ),
+    schema(
+        function = "crate::hjn::validator::can_register",
+        skip_on_field_errors = false,
+        code = "username",
+        use_context
+    )
+)]
 pub struct RegisterUserRequest {
 
     #[validate(length(min = 5, max = 20, code = "username"))]
@@ -176,7 +207,12 @@ fn test_nested_struct_success() {
         }
     };
 
-    assert!(request.validate().is_ok())
+    let context = DatabaseContex {
+        total: 100,
+        max_data: 1000,
+    };
+
+    assert!(request.validate_with_args(&context).is_ok())
 }
 
 // Contoh untuk validasi gagal menggunakan Nested Struct
@@ -194,9 +230,14 @@ fn test_nested_struct_failed() {
         }
     };
 
-    assert!(request.validate().is_err());
+    let context = DatabaseContex {
+        total: 100,
+        max_data: 100,
+    };
 
-    let errors = request.validate().err().unwrap();
+    assert!(request.validate_with_args(&context).is_err());
+
+    let errors = request.validate_with_args(&context).err().unwrap();
     println!("{:?}", errors.errors())
 }
 
